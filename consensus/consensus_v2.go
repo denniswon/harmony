@@ -1121,6 +1121,8 @@ func (consensus *Consensus) Start(blockChannel chan *types.Block, stopChan chan 
 				if consensus.ShardID == 0 {
 					if core.IsEpochBlock(newBlock) {
 						consensus.pendingVrfs = nil
+						consensus.generateNewVrf = true
+						consensus.generateNewVdf = true
 					}
 
 					if consensus.generateNewVrf {
@@ -1145,7 +1147,7 @@ func (consensus *Consensus) Start(blockChannel chan *types.Block, stopChan chan 
 						consensus.generateNewVrf = false
 
 						//if len(consensus.pendingVrfs) >= consensus.Quorum() {
-						if len(consensus.pendingVrfs) >= 1 {
+						if consensus.generateNewVdf && len(consensus.pendingVrfs) >= 1 {
 							// Bitwise XOR on 2/3  of consensus quorum the submitted vrfs
 							RandPreimage := [32]byte{}
 							//for i := 0; i < consensus.Quorum(); i++ {
@@ -1177,6 +1179,7 @@ func (consensus *Consensus) Start(blockChannel chan *types.Block, stopChan chan 
 								copy(rndBytes[516:], RandPreimage[:])
 
 								consensus.RndChannel <- rndBytes
+								consensus.generateNewVdf = false
 							}()
 						}
 					}

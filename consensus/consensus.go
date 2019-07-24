@@ -155,6 +155,9 @@ type Consensus struct {
 	// If true, the leader will generate a new VRF
 	generateNewVrf bool
 
+	// If true, the leader will generate a new VDF
+	generateNewVdf bool
+
 	// A list of pending VRFs received in this epoch
 	pendingVrfs [][32]byte
 }
@@ -281,6 +284,9 @@ func New(host p2p.Host, ShardID uint32, leader p2p.Peer, blsPriKey *bls.SecretKe
 
 	// enable the VRF generation flag for the first master
 	consensus.generateNewVrf = true
+
+	// enable the VDF generation flag for the first master
+	consensus.generateNewVDf = true
 
 	memprofiling.GetMemProfiling().Add("consensus.pbftLog", consensus.PbftLog)
 	return &consensus, nil
