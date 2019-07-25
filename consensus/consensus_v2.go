@@ -281,6 +281,7 @@ func (consensus *Consensus) onAnnounce(msg *msg_pb.Message) {
 			copy(vdfOutput[:258], headerObj.Vdf[:])
 			copy(vdfOutput[258:], headerObj.VdfProof[:])
 			if vdfObject.Verify(vdfOutput) {
+				consensus.generateNewVdf = false
 				consensus.getLogger().Info().
 					Str("MsgBlockNum", headerObj.Number.String()).
 					Msg("[OnAnnounce] validated the new VDF")
