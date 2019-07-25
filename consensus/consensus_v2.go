@@ -212,8 +212,8 @@ func (consensus *Consensus) onAnnounce(msg *msg_pb.Message) {
 			return
 		}
 
-		zeroBytes := make([]byte, 32)
-		if !bytes.Equal(headerObj.Vrf[:], zeroBytes) {
+		zeroVrfBytes := make([]byte, 32)
+		if !bytes.Equal(headerObj.Vrf[:], zeroVrfBytes) {
 			vrfPk := vrf_bls.NewVRFVerifier(consensus.LeaderPubKey)
 
 			var blockHash [32]byte
@@ -257,7 +257,8 @@ func (consensus *Consensus) onAnnounce(msg *msg_pb.Message) {
 				Msg("[OnAnnounce] validated the new VRF")
 		}
 
-		if !bytes.Equal(headerObj.RandPreimage[:], zeroBytes) {
+		zeroVdfBytes := make([]byte, 516)
+		if !bytes.Equal(headerObj.Vdf[:], zeroVdfBytes) {
 			consensus.vrfBlockNumbers, err = consensus.ChainReader.ReadVrfBlockNums()
 			if err != nil {
 				consensus.getLogger().Error().Err(err).
@@ -273,17 +274,6 @@ func (consensus *Consensus) onAnnounce(msg *msg_pb.Message) {
 				for j := 0; j < len(seed); j++ {
 					seed[j] = seed[j] ^ previousVrf[j]
 				}
-			}
-
-			previousVrf := consensus.ChainReader.GetVrfByNumber(consensus.vrfBlockNumbers[0])
-			if !bytes.Equal(headerObj.RandPreimage[:], seed[:]) {
-				consensus.getLogger().Error().Err(err).
-					Str("MsgBlockNum", headerObj.Number.String()).
-					Bytes("seed", seed[:]).
-					Int("Len of Seed", len(seed)).
-					Bytes("previousVrf", previousVrf[:]).
-					Bytes("RandPreImage", headerObj.RandPreimage[:]).
-					Msg("[OnAnnounce] VDF seed and randimage not equal")
 			}
 
 			vdf := vdf_go.New(vdfDifficulty, seed)
@@ -1231,26 +1221,22 @@ func (consensus *Consensus) Start(blockChannel chan *types.Block, stopChan chan 
 								output := <-outputChannel
 
 								// The first 516 bytes are the VDF+proof and the last 32 bytes are XORed VRF as seed
-								rndBytes := [548]byte{}
-								copy(rndBytes[:516], output[:])
-								copy(rndBytes[516:], RandPreimage[:])
-
+								rndBytes := [516]byte{}
+								copy(rndBytes[:], output[:])
 								consensus.RndChannel <- rndBytes
 								consensus.generateNewVdf = false
 							}()
 						}
 					}
 
-					vdf, seed, err := consensus.GetNextRnd()
+					vdf, err := consensus.GetNextRnd()
 					if err == nil {
 						// Verify the randomness
 						_ = vdf
 						consensus.getLogger().Info().
 							Uint64("MsgBlockNum", newBlock.NumberU64()).
-							Bytes("VDF seed = ", seed[:]).
 							Msg("[ConsensusMainLoop] Adding randomness into new block")
 							newBlock.AddVdf(vdf)
-						   	newBlock.AddRandPreimage(seed)
 					} else {
 						//consensus.getLogger().Error().Err(err). Msg("[ConsensusMainLoop] Failed to get randomness")
 					}
