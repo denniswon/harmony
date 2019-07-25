@@ -92,8 +92,8 @@ type Header struct {
 	ShardStateHash      common.Hash `json:"shardStateRoot"`
 	Vrf                 [32]byte    `json:"vrf"`
 	VrfProof            [96]byte    `json:"vrfProof"`
-	RandPreimage        [32]byte    `json:"randPreimage"`
-	Vdf                 [516]byte   `json:"vdf"`
+	Vdf                 [258]byte   `json:"vdf"`
+	VdfProof            [258]byte   `json:"VdfProof"`
 	ShardState          []byte      `json:"shardState"`
 }
 
@@ -499,14 +499,14 @@ func (b *Block) AddVrfProof(proof [96]byte) {
 	b.header.VrfProof = proof
 }
 
-// AddVdf add vdf and proof into block header
-func (b *Block) AddVdf(vdf [516]byte) {
+// AddVdf add vdf into block header
+func (b *Block) AddVdf(vdf [258]byte) {
 	b.header.Vdf = vdf
 }
 
-// AddRandPreimage add the seed of VDF (VDF xor)
-func (b *Block) AddRandPreimage(RandPreimage [32]byte) {
-	b.header.RandPreimage = RandPreimage
+// AddVdf add vdf and proof into block header
+func (b *Block) AddVdfProof(proof [258]byte) {
+	b.header.VdfProof = proof
 }
 
 // AddShardState add shardState into block header
