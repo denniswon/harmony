@@ -63,6 +63,9 @@ var (
 	// -> epoch block number (big.Int.Bytes())
 	epochBlockNumberPrefix = []byte("harmony-epoch-block-number-")
 
+	// vrfBlocksKey tracks blocks with valid VRF in the current epoch
+	vrfBlockNumbersKey   = []byte("vrf-block-numbers")
+
 	// Chain index prefixes (use `i` + single byte to avoid mixing data types).
 	BloomBitsIndexPrefix = []byte("iB") // BloomBitsIndexPrefix is the data table of a chain indexer to track its progress
 

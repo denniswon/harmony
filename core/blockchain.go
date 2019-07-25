@@ -66,6 +66,7 @@ const (
 	triesInMemory       = 128
 	shardCacheLimit     = 2
 	epochCacheLimit     = 10
+	randomnessCacheLimit       = 10
 
 	// BlockChainVersion ensures that an incompatible database forces a resync from scratch.
 	BlockChainVersion = 3
@@ -126,6 +127,7 @@ type BlockChain struct {
 	futureBlocks    *lru.Cache     // future blocks are blocks added for later processing
 	shardStateCache *lru.Cache
 	epochCache      *lru.Cache // Cache epoch number → first block number
+	randomnessCache        *lru.Cache     // Cache for vrfs in the current epoch
 
 	quit    chan struct{} // blockchain quit channel
 	running int32         // running must be called atomically
@@ -160,6 +162,8 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 	badBlocks, _ := lru.New(badBlockLimit)
 	shardCache, _ := lru.New(shardCacheLimit)
 	epochCache, _ := lru.New(epochCacheLimit)
+	randomnessCache,_ := lru.New(randomnessCacheLimit)
+
 
 	bc := &BlockChain{
 		chainConfig:     chainConfig,
@@ -176,6 +180,7 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 		futureBlocks:    futureBlocks,
 		shardStateCache: shardCache,
 		epochCache:      epochCache,
+		randomnessCache:        randomnessCache,
 		engine:          engine,
 		vmConfig:        vmConfig,
 		badBlocks:       badBlocks,
@@ -1752,6 +1757,43 @@ func (bc *BlockChain) WriteShardStateBytes(
 	return nil
 }
 
+// ReadVrfBlockNums retrieves blocks with valid VRF in the current epoch
+func (bc *BlockChain) ReadVrfBlockNums() ([]uint64, error) {
+	vrfNumbers := []uint64{}
+	if cached, ok := bc.randomnessCache.Get("vrf-block-numbers"); ok {
+		encodedVrfNumbers := cached.([]byte)
+		if err := rlp.DecodeBytes(encodedVrfNumbers, &vrfNumbers); err != nil {
+			return nil, err
+		}
+		return vrfNumbers, nil
+	}
+
+	encodedVrfNumbers, err := rawdb.ReadVrfBlockNums(bc.db)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := rlp.DecodeBytes(encodedVrfNumbers, &vrfNumbers); err != nil {
+		return nil, err
+	}
+	return vrfNumbers, nil
+}
+
+// WriteVrfBlockNums saves blocks with valid VRF in the current epoch
+func (bc *BlockChain) WriteVrfBlockNums(vrfNumbers []uint64) error {
+	encodedVrfNumbers, err := rlp.EncodeToBytes(vrfNumbers)
+	if err != nil {
+		return err
+	}
+
+	err = rawdb.WriteVrfBlockNums(bc.db, encodedVrfNumbers)
+	if err != nil {
+		return err
+	}
+	bc.randomnessCache.Add("vrf-block-numbers", encodedVrfNumbers)
+	return nil
+}
+
 // GetVdfByNumber retrieves the rand seed given the block number, return 0 if not exist
 func (bc *BlockChain) GetVdfByNumber(number uint64) [32]byte {
 	header := bc.GetHeaderByNumber(number)
@@ -1770,9 +1812,8 @@ func (bc *BlockChain) GetVrfByNumber(number uint64) [32]byte {
 	if header == nil {
 		return [32]byte{}
 	}
-	//return header.Vrf
-	// TODO: add real vrf
-	return [32]byte{}
+
+	return header.Vrf
 }
 
 // GetShardState returns the shard state for the given epoch,

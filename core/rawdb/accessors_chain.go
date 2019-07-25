@@ -462,3 +462,25 @@ func ReadEpochBlockNumber(db DatabaseReader, epoch *big.Int) (*big.Int, error) {
 func WriteEpochBlockNumber(db DatabaseWriter, epoch, blockNum *big.Int) error {
 	return db.Put(epochBlockNumberKey(epoch), blockNum.Bytes())
 }
+
+
+// ReadLastCommits retrieves LastCommits.
+func ReadVrfBlockNums(db DatabaseReader) ([]byte, error) {
+	var data []byte
+	data, err := db.Get(vrfBlockNumbersKey)
+	if err != nil {
+		return nil, ctxerror.New("cannot read vrf block numbers from rawdb").WithCause(err)
+	}
+	return data, nil
+}
+
+// WriteLastCommits stores last commits into database.
+func WriteVrfBlockNums(
+	db DatabaseWriter, data []byte,
+) (err error) {
+	if err = db.Put(vrfBlockNumbersKey, data); err != nil {
+		return ctxerror.New("cannot write vrf block numbers").WithCause(err)
+	}
+	utils.GetLogger().Info("wrote vrf block numbers", "numShards", len(data))
+	return nil
+}

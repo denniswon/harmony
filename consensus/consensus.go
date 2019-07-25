@@ -3,6 +3,7 @@ package consensus // consensus
 
 import (
 	"fmt"
+	"github.com/harmony-one/harmony/core"
 	"math/big"
 	"sync"
 	"time"
@@ -69,7 +70,7 @@ type Consensus struct {
 	vcLock       sync.Mutex // mutex for view change
 
 	// The chain reader for the blockchain this consensus is working on
-	ChainReader consensus_engine.ChainReader
+	ChainReader *core.BlockChain
 
 	// map of nodeID to validator Peer object
 	validators sync.Map // key is the hex string of the blsKey, value is p2p.Peer
@@ -158,8 +159,8 @@ type Consensus struct {
 	// If true, the leader will generate a new VDF
 	generateNewVdf bool
 
-	// A list of pending VRFs received in this epoch
-	pendingVrfs [][32]byte
+	// A list of block numbers with valid VRF in this epoch
+	vrfBlockNumbers []uint64
 }
 
 // SetCommitDelay sets the commit message delay.  If set to non-zero,
@@ -286,7 +287,7 @@ func New(host p2p.Host, ShardID uint32, leader p2p.Peer, blsPriKey *bls.SecretKe
 	consensus.generateNewVrf = true
 
 	// enable the VDF generation flag for the first master
-	consensus.generateNewVDf = true
+	consensus.generateNewVdf = true
 
 	memprofiling.GetMemProfiling().Add("consensus.pbftLog", consensus.PbftLog)
 	return &consensus, nil
