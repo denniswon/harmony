@@ -268,7 +268,7 @@ func (consensus *Consensus) onAnnounce(msg *msg_pb.Message) {
 			// Bitwise XOR on 2/3  of consensus quorum the submitted vrfs
 			seed := [32]byte{}
 			//for i := 0; i < consensus.Quorum(); i++ {
-			for i := 0; i < 1; i++ {
+			for i := 0; i < 2; i++ {
 				previousVrf := consensus.ChainReader.GetVrfByNumber(consensus.vrfBlockNumbers[i])
 				for j := 0; j < len(seed); j++ {
 					seed[j] = seed[j] ^ previousVrf[j]
@@ -1204,11 +1204,11 @@ func (consensus *Consensus) Start(blockChannel chan *types.Block, stopChan chan 
 						consensus.generateNewVrf = false
 
 						//if len(consensus.vrfBlockNumbers) >= consensus.Quorum() {
-						if consensus.generateNewVdf && len(consensus.vrfBlockNumbers) >= 1 {
+						if consensus.generateNewVdf && len(consensus.vrfBlockNumbers) >= 2 {
 							// Bitwise XOR on 2/3  of consensus quorum the submitted vrfs
 							RandPreimage := vrf
 							//for i := 0; i < consensus.Quorum(); i++ {
-							for i := 0; i < 1 - 1 ; i++ {
+							for i := 0; i < 2 - 1 ; i++ {
 								for j := 0; j < len(RandPreimage); j++ {
 									previousVrf := consensus.ChainReader.GetVrfByNumber(consensus.vrfBlockNumbers[i])
 									RandPreimage[j] = RandPreimage[j] ^ previousVrf[j]
