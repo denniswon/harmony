@@ -469,7 +469,7 @@ func ReadVrfBlockNums(db DatabaseReader) ([]byte, error) {
 	var data []byte
 	data, err := db.Get(vrfBlockNumbersKey)
 	if err != nil {
-		return nil, ctxerror.New("cannot read vrf block numbers from rawdb").WithCause(err)
+		return nil, ctxerror.New("cannot read VDF block numbers from rawdb").WithCause(err)
 	}
 	return data, nil
 }
@@ -479,8 +479,7 @@ func WriteVrfBlockNums(
 	db DatabaseWriter, data []byte,
 ) (err error) {
 	if err = db.Put(vrfBlockNumbersKey, data); err != nil {
-		return ctxerror.New("cannot write vrf block numbers").WithCause(err)
+		return ctxerror.New("cannot write VDF block numbers").WithCause(err)
 	}
-	utils.GetLogger().Info("wrote vrf block numbers", "numShards", len(data))
 	return nil
 }
