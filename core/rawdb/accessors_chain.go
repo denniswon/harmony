@@ -463,23 +463,22 @@ func WriteEpochBlockNumber(db DatabaseWriter, epoch, blockNum *big.Int) error {
 	return db.Put(epochBlockNumberKey(epoch), blockNum.Bytes())
 }
 
-
-// ReadLastCommits retrieves LastCommits.
-func ReadVrfBlockNums(db DatabaseReader) ([]byte, error) {
-	var data []byte
-	data, err := db.Get(vrfBlockNumbersKey)
-	if err != nil {
-		return nil, ctxerror.New("cannot read VDF block numbers from rawdb").WithCause(err)
-	}
-	return data, nil
+// ReadEpochVrfBlockNums retrieves the VRF block numbers for the given epoch
+func ReadEpochVrfBlockNums(db DatabaseReader, epoch *big.Int) ([]byte, error) {
+	return db.Get(epochVrfBlockNumbersKey(epoch))
 }
 
-// WriteLastCommits stores last commits into database.
-func WriteVrfBlockNums(
-	db DatabaseWriter, data []byte,
-) (err error) {
-	if err = db.Put(vrfBlockNumbersKey, data); err != nil {
-		return ctxerror.New("cannot write VDF block numbers").WithCause(err)
-	}
-	return nil
+// WriteVrfBlockNums stores the VRF block numbers for the given epoch
+func WriteEpochVrfBlockNums(db DatabaseWriter, epoch *big.Int, data []byte) error {
+	return db.Put(epochVrfBlockNumbersKey(epoch), data)
+}
+
+// ReadEpochVdfBlockNum retrieves the VDF block number for the given epoch
+func ReadEpochVdfBlockNum(db DatabaseReader, epoch *big.Int) ([]byte, error) {
+	return db.Get(epochVdfBlockNumberKey(epoch))
+}
+
+// WriteEpochVdfBlockNum stores the VDF block number for the given epoch
+func WriteEpochVdfBlockNum(db DatabaseWriter, epoch *big.Int, data []byte) error {
+	return db.Put(epochVdfBlockNumberKey(epoch), data)
 }

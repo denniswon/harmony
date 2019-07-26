@@ -1758,43 +1758,6 @@ func (bc *BlockChain) WriteShardStateBytes(
 	return nil
 }
 
-// ReadVrfBlockNums retrieves blocks with valid VRF in the current epoch
-func (bc *BlockChain) ReadVrfBlockNums() ([]uint64, error) {
-	vrfNumbers := []uint64{}
-	if cached, ok := bc.randomnessCache.Get("vrf-block-numbers"); ok {
-		encodedVrfNumbers := cached.([]byte)
-		if err := rlp.DecodeBytes(encodedVrfNumbers, &vrfNumbers); err != nil {
-			return nil, err
-		}
-		return vrfNumbers, nil
-	}
-
-	encodedVrfNumbers, err := rawdb.ReadVrfBlockNums(bc.db)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := rlp.DecodeBytes(encodedVrfNumbers, &vrfNumbers); err != nil {
-		return nil, err
-	}
-	return vrfNumbers, nil
-}
-
-// WriteVrfBlockNums saves blocks with valid VRF in the current epoch
-func (bc *BlockChain) WriteVrfBlockNums(vrfNumbers []uint64) error {
-	encodedVrfNumbers, err := rlp.EncodeToBytes(vrfNumbers)
-	if err != nil {
-		return err
-	}
-
-	err = rawdb.WriteVrfBlockNums(bc.db, encodedVrfNumbers)
-	if err != nil {
-		return err
-	}
-	bc.randomnessCache.Add("vrf-block-numbers", encodedVrfNumbers)
-	return nil
-}
-
 // GetVdfByNumber retrieves the rand seed given the block number, return 0 if not exist
 func (bc *BlockChain) GetVdfByNumber(number uint64) [32]byte {
 	header := bc.GetHeaderByNumber(number)
@@ -1873,6 +1836,68 @@ func (bc *BlockChain) StoreEpochBlockNumber(
 			"epochBlockNum", blockNum,
 		).WithCause(err)
 	}
+	return nil
+}
+
+// ReadEpochVrfBlockNums retrieves block numbers with valid VRF for the specified epoch
+func (bc *BlockChain) ReadEpochVrfBlockNums(epoch *big.Int) ([]uint64, error) {
+	vrfNumbers := []uint64{}
+	if cached, ok := bc.randomnessCache.Get("vrf-"+string(epoch.Bytes())); ok {
+		encodedVrfNumbers := cached.([]byte)
+		if err := rlp.DecodeBytes(encodedVrfNumbers, &vrfNumbers); err != nil {
+			return nil, err
+		}
+		return vrfNumbers, nil
+	}
+
+	encodedVrfNumbers, err := rawdb.ReadEpochVrfBlockNums(bc.db, epoch)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := rlp.DecodeBytes(encodedVrfNumbers, &vrfNumbers); err != nil {
+		return nil, err
+	}
+	return vrfNumbers, nil
+}
+
+// WriteEpochVrfBlockNums saves block numbers with valid VRF for the specified epoch
+func (bc *BlockChain) WriteEpochVrfBlockNums(epoch *big.Int, vrfNumbers []uint64) error {
+	encodedVrfNumbers, err := rlp.EncodeToBytes(vrfNumbers)
+	if err != nil {
+		return err
+	}
+
+	err = rawdb.WriteEpochVrfBlockNums(bc.db, epoch, encodedVrfNumbers)
+	if err != nil {
+		return err
+	}
+	bc.randomnessCache.Add("vrf-"+string(epoch.Bytes()), encodedVrfNumbers)
+	return nil
+}
+
+// ReadEpochVdfBlockNum retrieves block number with valid VDF for the specified epoch
+func (bc *BlockChain) ReadEpochVdfBlockNum(epoch *big.Int) (*big.Int, error) {
+	if cached, ok := bc.randomnessCache.Get("vdf-"+string(epoch.Bytes())); ok {
+		encodedVdfNumber := cached.([]byte)
+		return new(big.Int).SetBytes(encodedVdfNumber), nil
+	}
+
+	encodedVdfNumber, err := rawdb.ReadEpochVdfBlockNum(bc.db, epoch)
+	if err != nil {
+		return nil, err
+	}
+	return new(big.Int).SetBytes(encodedVdfNumber), nil
+}
+
+// WriteEpochVdfBlockNum saves block number with valid VDF for the specified epoch
+func (bc *BlockChain) WriteEpochVdfBlockNum(epoch *big.Int, blockNum *big.Int) error {
+	err := rawdb.WriteEpochVdfBlockNum(bc.db, epoch, blockNum.Bytes())
+	if err != nil {
+		return err
+	}
+
+	bc.randomnessCache.Add("vdf-"+string(epoch.Bytes()), blockNum.Bytes())
 	return nil
 }
 

@@ -218,7 +218,7 @@ func (consensus *Consensus) onAnnounce(msg *msg_pb.Message) {
 				consensus.generateNewVdf = true
 
 				consensus.vrfBlockNumbers = nil
-				consensus.ChainReader.WriteVrfBlockNums(consensus.vrfBlockNumbers)
+				consensus.ChainReader.WriteEpochVrfBlockNums(headerObj.Epoch, consensus.vrfBlockNumbers)
 			}
 
 			zeroVrfBytes := make([]byte, 32)
@@ -246,14 +246,15 @@ func (consensus *Consensus) onAnnounce(msg *msg_pb.Message) {
 					return
 				}
 
-				consensus.vrfBlockNumbers, err = consensus.ChainReader.ReadVrfBlockNums()
+				consensus.vrfBlockNumbers, err = consensus.ChainReader.ReadEpochVrfBlockNums(headerObj.Epoch)
 				if err != nil {
 					consensus.getLogger().Error().Err(err).
 						Str("MsgBlockNum", headerObj.Number.String()).
 						Msg("[OnAnnounce] failed to read vrf block number from local db")
 				}
+
 				consensus.vrfBlockNumbers = append(consensus.vrfBlockNumbers, headerObj.Number.Uint64())
-				err = consensus.ChainReader.WriteVrfBlockNums(consensus.vrfBlockNumbers)
+				err = consensus.ChainReader.WriteEpochVrfBlockNums(headerObj.Epoch, consensus.vrfBlockNumbers)
 				if err != nil {
 					consensus.getLogger().Error().Err(err).
 						Str("MsgBlockNum", headerObj.Number.String()).
@@ -269,7 +270,7 @@ func (consensus *Consensus) onAnnounce(msg *msg_pb.Message) {
 
 			zeroVdfBytes := make([]byte, 258)
 			if !bytes.Equal(headerObj.Vdf[:], zeroVdfBytes) {
-				consensus.vrfBlockNumbers, err = consensus.ChainReader.ReadVrfBlockNums()
+				consensus.vrfBlockNumbers, err = consensus.ChainReader.ReadEpochVrfBlockNums(headerObj.Epoch)
 				if err != nil {
 					consensus.getLogger().Error().Err(err).
 						Str("MsgBlockNum", headerObj.Number.String()).
@@ -293,7 +294,7 @@ func (consensus *Consensus) onAnnounce(msg *msg_pb.Message) {
 				consensus.getLogger().Info().
 					Bytes("Seed", seed[:]).
 					Uint64("vrfnumber0",consensus.vrfBlockNumbers[0]).
-					Uint64("vrfnumber1",consensus.vrfBlockNumbers[1]).
+					//Uint64("vrfnumber1",consensus.vrfBlockNumbers[1]).
 					Msg("[OnAnnounce] start to validate the new VDF")
 
 				vdfObject := vdf_go.New(vdfDifficulty, seed)
@@ -1180,7 +1181,7 @@ func (consensus *Consensus) Start(blockChannel chan *types.Block, stopChan chan 
 						consensus.generateNewVdf = true
 
 						consensus.vrfBlockNumbers = nil
-						err := consensus.ChainReader.WriteVrfBlockNums(consensus.vrfBlockNumbers)
+						err := consensus.ChainReader.WriteEpochVrfBlockNums(newBlock.Header().Epoch, consensus.vrfBlockNumbers)
 						if err != nil {
 							consensus.getLogger().Error().Err(err).
 								Uint64("MsgBlockNum", newBlock.NumberU64()).
@@ -1211,14 +1212,14 @@ func (consensus *Consensus) Start(blockChannel chan *types.Block, stopChan chan 
 						newBlock.AddVrfProof(vrfProof)
 
 						var err error
-						consensus.vrfBlockNumbers, err = consensus.ChainReader.ReadVrfBlockNums()
+						consensus.vrfBlockNumbers, err = consensus.ChainReader.ReadEpochVrfBlockNums(newBlock.Header().Epoch)
 						if err != nil {
 							consensus.getLogger().Error().Err(err).
 								Uint64("MsgBlockNum", newBlock.NumberU64()).
 								Msg("[ConsensusMainLoop] failed to read VRF block number from local db")
 						}
 						consensus.vrfBlockNumbers = append(consensus.vrfBlockNumbers, newBlock.NumberU64())
-						err = consensus.ChainReader.WriteVrfBlockNums(consensus.vrfBlockNumbers)
+						err = consensus.ChainReader.WriteEpochVrfBlockNums(newBlock.Header().Epoch, consensus.vrfBlockNumbers)
 						if err != nil {
 							consensus.getLogger().Error().Err(err).
 								Uint64("MsgBlockNum", newBlock.NumberU64()).

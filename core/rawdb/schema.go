@@ -63,8 +63,11 @@ var (
 	// -> epoch block number (big.Int.Bytes())
 	epochBlockNumberPrefix = []byte("harmony-epoch-block-number-")
 
-	// vrfBlocksKey tracks blocks with valid VRF in the current epoch
-	vrfBlockNumbersKey   = []byte("vrf-block-numbers")
+	// epochVrfBlockNumbersPrefix  + epoch (big.Int.Bytes())
+	epochVrfBlockNumbersPrefix   = []byte("epoch-vrf-block-numbers-")
+
+	// epochVdfBlockNumberPrefix  + epoch (big.Int.Bytes())
+	epochVdfBlockNumberPrefix = []byte("epoch-vdf-block-number-")
 
 	// Chain index prefixes (use `i` + single byte to avoid mixing data types).
 	BloomBitsIndexPrefix = []byte("iB") // BloomBitsIndexPrefix is the data table of a chain indexer to track its progress
@@ -149,4 +152,12 @@ func shardStateKey(epoch *big.Int) []byte {
 
 func epochBlockNumberKey(epoch *big.Int) []byte {
 	return append(epochBlockNumberPrefix, epoch.Bytes()...)
+}
+
+func epochVrfBlockNumbersKey(epoch *big.Int) []byte {
+	return append(epochVrfBlockNumbersPrefix, epoch.Bytes()...)
+}
+
+func epochVdfBlockNumberKey(epoch *big.Int) []byte {
+	return append(epochVdfBlockNumberPrefix, epoch.Bytes()...)
 }
