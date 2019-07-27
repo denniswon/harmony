@@ -65,6 +65,7 @@ const (
 	badBlockLimit       = 10
 	triesInMemory       = 128
 	shardCacheLimit     = 2
+	commitsCacheLimit   = 10
 	epochCacheLimit     = 10
 	randomnessCacheLimit       = 10
 
@@ -119,15 +120,17 @@ type BlockChain struct {
 	currentBlock     atomic.Value // Current head of the block chain
 	currentFastBlock atomic.Value // Current head of the fast-sync chain (may be above the block chain!)
 
-	stateCache      state.Database // State database to reuse between imports (contains state cache)
-	bodyCache       *lru.Cache     // Cache for the most recent block bodies
-	bodyRLPCache    *lru.Cache     // Cache for the most recent block bodies in RLP encoded format
-	receiptsCache   *lru.Cache     // Cache for the most recent receipts per block
-	blockCache      *lru.Cache     // Cache for the most recent entire blocks
-	futureBlocks    *lru.Cache     // future blocks are blocks added for later processing
-	shardStateCache *lru.Cache
-	epochCache      *lru.Cache // Cache epoch number → first block number
+	stateCache       state.Database // State database to reuse between imports (contains state cache)
+	bodyCache        *lru.Cache     // Cache for the most recent block bodies
+	bodyRLPCache     *lru.Cache     // Cache for the most recent block bodies in RLP encoded format
+	receiptsCache    *lru.Cache     // Cache for the most recent receipts per block
+	blockCache       *lru.Cache     // Cache for the most recent entire blocks
+	futureBlocks     *lru.Cache     // future blocks are blocks added for later processing
+	shardStateCache  *lru.Cache
+	lastCommitsCache *lru.Cache
+	epochCache       *lru.Cache // Cache epoch number → first block number
 	randomnessCache        *lru.Cache     // Cache for vrfs in the current epoch
+
 
 	quit    chan struct{} // blockchain quit channel
 	running int32         // running must be called atomically
@@ -161,29 +164,31 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 	futureBlocks, _ := lru.New(maxFutureBlocks)
 	badBlocks, _ := lru.New(badBlockLimit)
 	shardCache, _ := lru.New(shardCacheLimit)
+	commitsCache, _ := lru.New(commitsCacheLimit)
 	epochCache, _ := lru.New(epochCacheLimit)
 	randomnessCache,_ := lru.New(randomnessCacheLimit)
 
 
 	bc := &BlockChain{
-		chainConfig:     chainConfig,
-		cacheConfig:     cacheConfig,
-		db:              db,
-		triegc:          prque.New(nil),
-		stateCache:      state.NewDatabase(db),
-		quit:            make(chan struct{}),
-		shouldPreserve:  shouldPreserve,
-		bodyCache:       bodyCache,
-		bodyRLPCache:    bodyRLPCache,
-		receiptsCache:   receiptsCache,
-		blockCache:      blockCache,
-		futureBlocks:    futureBlocks,
-		shardStateCache: shardCache,
-		epochCache:      epochCache,
-		randomnessCache:        randomnessCache,
-		engine:          engine,
-		vmConfig:        vmConfig,
-		badBlocks:       badBlocks,
+		chainConfig:      chainConfig,
+		cacheConfig:      cacheConfig,
+		db:               db,
+		triegc:           prque.New(nil),
+		stateCache:       state.NewDatabase(db),
+		quit:             make(chan struct{}),
+		shouldPreserve:   shouldPreserve,
+		bodyCache:        bodyCache,
+		bodyRLPCache:     bodyRLPCache,
+		receiptsCache:    receiptsCache,
+		blockCache:       blockCache,
+		futureBlocks:     futureBlocks,
+		shardStateCache:  shardCache,
+		lastCommitsCache: commitsCache,
+		epochCache:       epochCache,
+		randomnessCache:  randomnessCache,
+		engine:           engine,
+		vmConfig:         vmConfig,
+		badBlocks:        badBlocks,
 	}
 	bc.SetValidator(NewBlockValidator(chainConfig, bc, engine))
 	bc.SetProcessor(NewStateProcessor(chainConfig, bc, engine))
@@ -1755,6 +1760,29 @@ func (bc *BlockChain) WriteShardStateBytes(
 	}
 	cacheKey := string(epoch.Bytes())
 	bc.shardStateCache.Add(cacheKey, decodeShardState)
+	return nil
+}
+
+// ReadLastCommits retrieves last commits.
+func (bc *BlockChain) ReadLastCommits() ([]byte, error) {
+	if cached, ok := bc.lastCommitsCache.Get("lastCommits"); ok {
+		lastCommits := cached.([]byte)
+		return lastCommits, nil
+	}
+	lastCommits, err := rawdb.ReadLastCommits(bc.db)
+	if err != nil {
+		return nil, err
+	}
+	return lastCommits, nil
+}
+
+// WriteLastCommits saves the commits of last block.
+func (bc *BlockChain) WriteLastCommits(lastCommits []byte) error {
+	err := rawdb.WriteLastCommits(bc.db, lastCommits)
+	if err != nil {
+		return err
+	}
+	bc.lastCommitsCache.Add("lastCommits", lastCommits)
 	return nil
 }
 

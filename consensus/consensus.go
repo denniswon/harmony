@@ -8,6 +8,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/harmony-one/harmony/core"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/harmony-one/bls/ffi/go/bls"
