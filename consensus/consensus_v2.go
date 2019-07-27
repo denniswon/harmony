@@ -11,7 +11,6 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 	protobuf "github.com/golang/protobuf/proto"
 	"github.com/harmony-one/bls/ffi/go/bls"
-	"github.com/harmony-one/vdf/src/vdf_go"
 	"github.com/harmony-one/harmony/api/proto"
 	msg_pb "github.com/harmony-one/harmony/api/proto/message"
 	"github.com/harmony-one/harmony/core"
@@ -21,6 +20,7 @@ import (
 	"github.com/harmony-one/harmony/internal/utils"
 	"github.com/harmony-one/harmony/p2p"
 	"github.com/harmony-one/harmony/p2p/host"
+	"github.com/harmony-one/vdf/src/vdf_go"
 )
 
 const (
@@ -214,7 +214,7 @@ func (consensus *Consensus) onAnnounce(msg *msg_pb.Message) {
 
 		if consensus.ShardID == 0 {
 			//TODO: HB fix this
-			if recvMsg.BlockNum % core.ShardingSchedule.BlocksPerEpoch() == 0 {
+			if recvMsg.BlockNum%core.ShardingSchedule.BlocksPerEpoch() == 0 {
 				consensus.generateNewVrf = true
 				consensus.generateNewVdf = true
 
@@ -1230,7 +1230,7 @@ func (consensus *Consensus) Start(blockChannel chan *types.Block, stopChan chan 
 						consensus.generateNewVrf = false
 						if consensus.generateNewVdf && len(consensus.vrfBlockNumbers) >= consensus.VdfSeedSize() {
 							seed := vrf
-							for i := 0; i < consensus.VdfSeedSize() - 1; i++ {
+							for i := 0; i < consensus.VdfSeedSize()-1; i++ {
 								previousVrf := consensus.ChainReader.GetVrfByNumber(consensus.vrfBlockNumbers[i])
 								for j := 0; j < len(seed); j++ {
 									seed[j] = seed[j] ^ previousVrf[j]
@@ -1268,7 +1268,7 @@ func (consensus *Consensus) Start(blockChannel chan *types.Block, stopChan chan 
 					if err == nil {
 						// Verify the randomness
 						vdfObject := vdf_go.New(vdfDifficulty, seed)
-						if ! vdfObject.Verify(vdfOutput) {
+						if !vdfObject.Verify(vdfOutput) {
 							consensus.getLogger().Warn().
 								Uint64("MsgBlockNum", newBlock.NumberU64()).
 								Uint64("EPOCH", newBlock.Header().Epoch.Uint64()).

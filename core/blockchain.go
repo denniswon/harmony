@@ -57,17 +57,17 @@ var (
 )
 
 const (
-	bodyCacheLimit      = 256
-	blockCacheLimit     = 256
-	receiptsCacheLimit  = 32
-	maxFutureBlocks     = 256
-	maxTimeFutureBlocks = 30
-	badBlockLimit       = 10
-	triesInMemory       = 128
-	shardCacheLimit     = 2
-	commitsCacheLimit   = 10
-	epochCacheLimit     = 10
-	randomnessCacheLimit       = 10
+	bodyCacheLimit       = 256
+	blockCacheLimit      = 256
+	receiptsCacheLimit   = 32
+	maxFutureBlocks      = 256
+	maxTimeFutureBlocks  = 30
+	badBlockLimit        = 10
+	triesInMemory        = 128
+	shardCacheLimit      = 2
+	commitsCacheLimit    = 10
+	epochCacheLimit      = 10
+	randomnessCacheLimit = 10
 
 	// BlockChainVersion ensures that an incompatible database forces a resync from scratch.
 	BlockChainVersion = 3
@@ -129,8 +129,7 @@ type BlockChain struct {
 	shardStateCache  *lru.Cache
 	lastCommitsCache *lru.Cache
 	epochCache       *lru.Cache // Cache epoch number → first block number
-	randomnessCache        *lru.Cache     // Cache for vrfs in the current epoch
-
+	randomnessCache  *lru.Cache // Cache for vrfs in the current epoch
 
 	quit    chan struct{} // blockchain quit channel
 	running int32         // running must be called atomically
@@ -166,8 +165,7 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 	shardCache, _ := lru.New(shardCacheLimit)
 	commitsCache, _ := lru.New(commitsCacheLimit)
 	epochCache, _ := lru.New(epochCacheLimit)
-	randomnessCache,_ := lru.New(randomnessCacheLimit)
-
+	randomnessCache, _ := lru.New(randomnessCacheLimit)
 
 	bc := &BlockChain{
 		chainConfig:      chainConfig,
@@ -1870,7 +1868,7 @@ func (bc *BlockChain) StoreEpochBlockNumber(
 // ReadEpochVrfBlockNums retrieves block numbers with valid VRF for the specified epoch
 func (bc *BlockChain) ReadEpochVrfBlockNums(epoch *big.Int) ([]uint64, error) {
 	vrfNumbers := []uint64{}
-	if cached, ok := bc.randomnessCache.Get("vrf-"+string(epoch.Bytes())); ok {
+	if cached, ok := bc.randomnessCache.Get("vrf-" + string(epoch.Bytes())); ok {
 		encodedVrfNumbers := cached.([]byte)
 		if err := rlp.DecodeBytes(encodedVrfNumbers, &vrfNumbers); err != nil {
 			return nil, err
@@ -1906,7 +1904,7 @@ func (bc *BlockChain) WriteEpochVrfBlockNums(epoch *big.Int, vrfNumbers []uint64
 
 // ReadEpochVdfBlockNum retrieves block number with valid VDF for the specified epoch
 func (bc *BlockChain) ReadEpochVdfBlockNum(epoch *big.Int) (*big.Int, error) {
-	if cached, ok := bc.randomnessCache.Get("vdf-"+string(epoch.Bytes())); ok {
+	if cached, ok := bc.randomnessCache.Get("vdf-" + string(epoch.Bytes())); ok {
 		encodedVdfNumber := cached.([]byte)
 		return new(big.Int).SetBytes(encodedVdfNumber), nil
 	}

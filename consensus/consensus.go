@@ -3,10 +3,11 @@ package consensus // consensus
 
 import (
 	"fmt"
-	"github.com/harmony-one/harmony/core"
 	"math/big"
 	"sync"
 	"time"
+
+	"github.com/harmony-one/harmony/core"
 
 	"github.com/harmony-one/harmony/core"
 
@@ -221,7 +222,7 @@ func (consensus *Consensus) PreviousQuorum() int {
 
 // VdfSeedSize returns the number of VRFs for VDF computation
 func (consensus *Consensus) VdfSeedSize() int {
-	return len(consensus.PublicKeys)*2/3
+	return len(consensus.PublicKeys) * 2 / 3
 }
 
 // RewardThreshold returns the threshold to stop accepting commit messages

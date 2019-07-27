@@ -53,7 +53,7 @@ func (consensus *Consensus) GetNextRnd() ([516]byte, [32]byte, error) {
 	//pop the first vdfOutput from the list
 	consensus.pendingRnds = consensus.pendingRnds[1:]
 
-	return vdfBytes, seed,  nil
+	return vdfBytes, seed, nil
 }
 
 // SealHash returns the hash of a block prior to it being sealed.

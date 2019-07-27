@@ -65,7 +65,7 @@ var (
 	epochBlockNumberPrefix = []byte("harmony-epoch-block-number-")
 
 	// epochVrfBlockNumbersPrefix  + epoch (big.Int.Bytes())
-	epochVrfBlockNumbersPrefix   = []byte("epoch-vrf-block-numbers-")
+	epochVrfBlockNumbersPrefix = []byte("epoch-vrf-block-numbers-")
 
 	// epochVdfBlockNumberPrefix  + epoch (big.Int.Bytes())
 	epochVdfBlockNumberPrefix = []byte("epoch-vdf-block-number-")
