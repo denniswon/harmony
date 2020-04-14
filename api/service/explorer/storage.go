@@ -97,100 +97,84 @@ func (storage *Storage) Dump(block *types.Block, height uint64) {
 
 // UpdateTxAddressStorage stores Transaction to explorer storage ldb
 func (storage *Storage) UpdateTxAddressStorage(explorerTransaction *Transaction, tx *types.Transaction) {
-	var address Address
-	var data []byte
-	var err error
-
 	// sent transaction
 	explorerTransaction.Type = Sent
-	key := GetAddressKey(explorerTransaction.From)
-	var addr []byte = []byte(key)
+	f := func(explorerTransaction *Transaction) {
+		var address Address
+		var key string
+		var addr []byte
+		var data []byte
+		var err error
 
-	if data, err = storage.db.Get(addr, nil); err == nil {
-		if err = rlp.DecodeBytes(data, &address); err != nil {
-			utils.Logger().Error().Err(err).Msg("Failed to get sender address for transaction")
+		key = GetAddressKey(explorerTransaction.From)
+		addr = []byte(key)
+
+		if data, err = storage.db.Get(addr, nil); err == nil {
+			if err = rlp.DecodeBytes(data, &address); err != nil {
+				utils.Logger().Error().Err(err).Str("address", string(addr)).
+					Msg("Failed to get address for transaction")
+			}
+		}
+		address.ID = explorerTransaction.From
+		address.TXs = append(address.TXs, explorerTransaction)
+		encoded, err := rlp.EncodeToBytes(address)
+		if err == nil {
+			storage.GetDB().Put([]byte(key), encoded, nil)
+		} else {
+			utils.Logger().Error().Err(err).Msg("cannot encode address")
 		}
 	}
-	address.ID = explorerTransaction.From
-	address.TXs = append(address.TXs, explorerTransaction)
-	encoded, err := rlp.EncodeToBytes(address)
-	if err == nil {
-		storage.GetDB().Put([]byte(key), encoded, nil)
-	} else {
-		utils.Logger().Error().Err(err).Msg("cannot encode address")
-	}
+	go f(explorerTransaction)
 
 	if explorerTransaction.To == "" {
 		return
 	}
 
 	// received transaction
-	explorerTransaction.Type = Received
-	key = GetAddressKey(explorerTransaction.To)
-	addr = []byte(key)
-
-	if data, err = storage.db.Get(addr, nil); err == nil {
-		if err = rlp.DecodeBytes(data, &address); err != nil {
-			utils.Logger().Error().Err(err).Msg("Failed to get receiver address for transaction")
-		}
-	}
-	address.ID = explorerTransaction.To
-	address.TXs = append(address.TXs, explorerTransaction)
-	encoded, err = rlp.EncodeToBytes(address)
-	if err == nil {
-		storage.GetDB().Put([]byte(key), encoded, nil)
-	} else {
-		utils.Logger().Error().Err(err).Msg("cannot encode address")
-	}
+	copy := explorerTransaction
+	copy.Type = Received
+	go f(copy)
 }
 
 // UpdateStakingTxAddressStorage stores Staking Transaction to explorer storage ldb
 func (storage *Storage) UpdateStakingTxAddressStorage(explorerTransaction *StakingTransaction, tx *staking.StakingTransaction) {
-	var address Address
-	var data []byte
-	var err error
-
 	// sent transaction
 	explorerTransaction.Type = Sent
-	key := GetAddressKey(explorerTransaction.From)
-	var addr []byte = []byte(key)
+	f := func(explorerTransaction *StakingTransaction) {
+		var address Address
+		var key string
+		var addr []byte
+		var data []byte
+		var err error
 
-	if data, err = storage.db.Get(addr, nil); err == nil {
-		if err = rlp.DecodeBytes(data, &address); err != nil {
-			utils.Logger().Error().Err(err).Msg("Failed to get sender address for staking transaction")
+		key = GetAddressKey(explorerTransaction.From)
+		addr = []byte(key)
+
+		if data, err = storage.db.Get(addr, nil); err == nil {
+			if err = rlp.DecodeBytes(data, &address); err != nil {
+				utils.Logger().Error().Err(err).Str("address", string(addr)).
+					Msg("Failed to get address for staking transaction")
+			}
+		}
+		address.ID = explorerTransaction.From
+		address.StakingTXs = append(address.StakingTXs, explorerTransaction)
+		encoded, err := rlp.EncodeToBytes(address)
+		if err == nil {
+			storage.GetDB().Put([]byte(key), encoded, nil)
+		} else {
+			utils.Logger().Error().Err(err).Msg("cannot encode address")
 		}
 	}
-	address.ID = explorerTransaction.From
-	address.StakingTXs = append(address.StakingTXs, explorerTransaction)
-	encoded, err := rlp.EncodeToBytes(address)
-	if err == nil {
-		storage.GetDB().Put([]byte(key), encoded, nil)
-	} else {
-		utils.Logger().Error().Err(err).Msg("cannot encode address")
-	}
+	go f(explorerTransaction)
 
 	if explorerTransaction.To == "" {
 		return
 	}
 
 	// received transaction
-	explorerTransaction.Type = Received
-	key = GetAddressKey(explorerTransaction.To)
-	addr = []byte(key)
-
-	if data, err = storage.db.Get(addr, nil); err == nil {
-		if err = rlp.DecodeBytes(data, &address); err != nil {
-			utils.Logger().Error().Err(err).Msg("Failed to get receiver address for staking transaction")
-		}
-	}
-	address.ID = explorerTransaction.To
-	address.StakingTXs = append(address.StakingTXs, explorerTransaction)
-	encoded, err = rlp.EncodeToBytes(address)
-	if err == nil {
-		storage.GetDB().Put([]byte(key), encoded, nil)
-	} else {
-		utils.Logger().Error().Err(err).Msg("cannot encode address")
-	}
+	copy := explorerTransaction
+	copy.Type = Received
+	go f(copy)
 }
 
 // GetAddresses returns size of addresses from address with prefix.
